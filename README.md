@@ -1,4 +1,4 @@
-![GitHub_Logo](https://github.com/DevinWhitten/STAT_FOX/blob/master/png/STAT_FOX.png)
+![GitHub_Logo](https://github.com/DevinWhitten/STAT_FOX/blob/master/png/STATFOX.png)
 
 # STAT_FOX
 ### STAT_FOX
