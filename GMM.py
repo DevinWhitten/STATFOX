@@ -43,7 +43,12 @@ def fit(distribution, n_components, iterations=30):
             'aic' : np.median(GM_STATS['AIC']), 'bic' : np.median(GM_STATS['BIC'])}
 
 
+def GMM(distro, n_components = 2):
+    GM = GaussianMixture(n_components)
 
+    GM.fit(np.array(distro).reshape((-1, 1)))
+
+    return GM
 
 
 

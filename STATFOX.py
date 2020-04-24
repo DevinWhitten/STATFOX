@@ -40,12 +40,22 @@ def print_columns(FRAME):
 def resample(input_array, frac = 0.8):
     ### Basic bootstrap iteration
     ## sample with replacement
+
     size = int(frac * len(input_array))
-    reindex = np.random.choice(np.random.randint(0, size, size), size = size, replace=True)
+    reindex = np.random.choice(np.random.randint(0, size, size),
+                               size = size, replace=True)
 
     return np.array(input_array)[reindex]
 
 
+
+def resample_frame(input_frame, frac = 0.8):
+    
+    size = int(frac * len(input_frame))
+    reindex = np.random.choice(np.random.randint(0, size, size),
+                                   size = size, replace=True)
+
+    return input_frame.iloc[reindex]
 
 
 def gen_kde_pdf(distribution, bounds=None, kde_width = None):
@@ -430,11 +440,10 @@ def custom_corner(sampler, burnin):
 
 
 
-def plot_GAMMA_grid(SAMPLER, burnin=100, lim =3, axis_dict = {'lamb' : [2., 3],
-                                                             'mu' : [3, 6]}, kernel=None):
+def plot_GAMMA_grid(LEFT_SAMPLER, RIGHT_SAMPLER, burnin=100, lim =3,
+                    axis_dict = {'lamb' : [2., 3], 'mu' : [3, 6]}, kernel=None):
 
-    ndim = SAMPLER.chain.shape[2]
-    SAMPLER = SAMPLER.chain[:, burnin:, :].reshape((-1, ndim))
+    ndim = LEFT_SAMPLER.shape[1]
 
     print('here')
 
@@ -449,26 +458,36 @@ def plot_GAMMA_grid(SAMPLER, burnin=100, lim =3, axis_dict = {'lamb' : [2., 3],
 
     BANDWIDTH = 0.15
     #alpha mu
-    COUNTS, xedges, yedges = np.histogram2d(SAMPLER[:, 0], SAMPLER[:, 1],
-                                            bins=BINS)
+    #COUNTS, xedges, yedges = np.histogram2d(SAMPLER[:, 0], SAMPLER[:, 1],
+    #                                        bins=BINS)
 
-    MASK = np.ma.masked_where(COUNTS.T < lim, COUNTS.T)
+    #MASK = np.ma.masked_where(COUNTS.T < lim, COUNTS.T)
 
-    alpha_dict = {"median": np.median(SAMPLER[:, 0]),
-                 "scale":  S_MAD(SAMPLER[:, 0])}
+    #alpha_dict = {"median": np.median(SAMPLER[:, 0]),
+    #             "scale":  np.std(SAMPLER[:, 0])}
 
-    beta_dict = {"median": np.median(SAMPLER[:, 1]),
-                 "scale":  S_MAD(SAMPLER[:, 1])}
+    #beta_dict = {"median": np.median(SAMPLER[:, 1]),
+    #             "scale":  np.std(SAMPLER[:, 1])}
 
     cmap=plt.cm.copper
 
     #########################################################
 
     print("... kerneling")
-    top_kernel = gaussian_kde(SAMPLER[:, 0], bw_method=BANDWIDTH)
 
-    span = np.linspace(alpha_dict['median'] - alpha_dict['scale'],
-                       alpha_dict['median'] + alpha_dict['scale'], 80)
+    lim = 10000
+    ax[1, 0].scatter(LEFT_SAMPLER[:lim, 1], LEFT_SAMPLER[:lim, 0],
+                        c = gaussian_kde(LEFT_SAMPLER[:lim, :].T, bw_method=BANDWIDTH).evaluate(LEFT_SAMPLER[:lim, :].T))
+
+    ax[1, 0].scatter(RIGHT_SAMPLER[:lim, 1], RIGHT_SAMPLER[:lim, 0],
+                        c = gaussian_kde(RIGHT_SAMPLER[:lim, :].T, bw_method=BANDWIDTH).evaluate(RIGHT_SAMPLER[:lim, :].T))
+
+
+
+    #
+
+    #span = np.linspace(alpha_dict['median'] - alpha_dict['scale'],
+    #                   alpha_dict['median'] + alpha_dict['scale'], 80)
 
     #ax[1,0].axvspan(alpha_dict['median'] - alpha_dict['scale'],
     #                alpha_dict['median'] + alpha_dict['scale'], alpha=0.3)
@@ -476,36 +495,36 @@ def plot_GAMMA_grid(SAMPLER, burnin=100, lim =3, axis_dict = {'lamb' : [2., 3],
     #ax[1,0].axhspan(beta_dict['median'] - beta_dict['scale'],
     #                beta_dict['median'] + beta_dict['scale'], alpha=0.3)
 
-    top_pdf = top_kernel.evaluate(span)
+    #top_pdf = top_kernel.evaluate(span)
 
-    ax[0,0].fill_between(span, np.zeros(len(span)), top_pdf, alpha=0.30, color = 'grey')
+    #ax[0,0].fill_between(span, np.zeros(len(span)), top_pdf, alpha=0.30, color = 'grey')
 
-    span = np.linspace(alpha_dict['median'] - 5*alpha_dict['scale'],
-                       alpha_dict['median'] + 5*alpha_dict['scale'], 80)
-    top_pdf = top_kernel.evaluate(span)
+    #span = np.linspace(alpha_dict['median'] - 5*alpha_dict['scale'],
+    #                   alpha_dict['median'] + 5*alpha_dict['scale'], 80)
+    #top_pdf = top_kernel.evaluate(span)
 
-    ax[0,0].plot(span, top_pdf, alpha=0.30, color = cmap(0.3))
-
-
-    right_kernel = gaussian_kde(SAMPLER[:, 1], bw_method=BANDWIDTH)
-
-    span = np.linspace(beta_dict['median'] - beta_dict['scale'],
-                       beta_dict['median'] + beta_dict['scale'], 80)
-
-    ax[1,1].fill_betweenx(span, np.zeros(len(span)), right_kernel.evaluate(span), alpha=0.3, color = cmap(0.3))
-
-    span = np.linspace(beta_dict['median'] - 5*beta_dict['scale'],
-                   beta_dict['median'] + 5*beta_dict['scale'], 80)
-
-    ax[1,1].plot(right_kernel.evaluate(span), span, alpha=0.3, color = cmap(0.3))
+    #ax[0,0].plot(span, top_pdf, alpha=0.30, color = cmap(0.3))
 
 
+    #right_kernel = gaussian_kde(SAMPLER[:, 1], bw_method=BANDWIDTH)
 
-    kernel = gaussian_kde(SAMPLER.T, bw_method = BANDWIDTH)
+    #span = np.linspace(beta_dict['median'] - beta_dict['scale'],
+    #                   beta_dict['median'] + beta_dict['scale'], 80)
 
-    DENSITY = kernel.evaluate(SAMPLER.T)
+    #ax[1,1].fill_betweenx(span, np.zeros(len(span)), right_kernel.evaluate(span), alpha=0.3, color = cmap(0.3))
 
-    ax[1,0].scatter(SAMPLER[:, 0], SAMPLER[:, 1], s=3, alpha=0.2, c=DENSITY, cmap=cmap, zorder=3)
+    #span = np.linspace(beta_dict['median'] - 5*beta_dict['scale'],
+    #               beta_dict['median'] + 5*beta_dict['scale'], 80)
+
+    #ax[1,1].plot(right_kernel.evaluate(span), span, alpha=0.3, color = cmap(0.3))
+
+
+
+    #kernel = gaussian_kde(SAMPLER.T, bw_method = BANDWIDTH)
+
+    #DENSITY = kernel.evaluate(SAMPLER.T)
+
+    #ax[1,0].scatter(SAMPLER[:, 0], SAMPLER[:, 1], s=3, alpha=0.2, c=DENSITY, cmap=cmap, zorder=3)
 
 
     plt.setp(ax[1,1].get_yticklabels(), visible=False)
@@ -525,8 +544,8 @@ def plot_GAMMA_grid(SAMPLER, burnin=100, lim =3, axis_dict = {'lamb' : [2., 3],
     [label.yaxis.set_minor_locator(AutoMinorLocator()) for label in ax[1, :]]
 
     ax[1,0].tick_params(which='both', top=True, right=True)
-    [label.set_xlim([2.67, 2.73]) for label in ax[:, 0]]
-    [label.set_ylim([4.71, 4.82]) for label in ax[1, :]]
+    #[label.set_xlim([2.67, 2.73]) for label in ax[:, 0]]
+    #[label.set_ylim([4.71, 4.82]) for label in ax[1, :]]
 
 
     ax[0,0].set_ylim([0, 50])
@@ -537,9 +556,9 @@ def plot_GAMMA_grid(SAMPLER, burnin=100, lim =3, axis_dict = {'lamb' : [2., 3],
     ax[1,0].set_xlabel(r'$\alpha$')
     ax[1,0].set_ylabel(r'$\beta$')
 
-    plt.savefig('results/BETA_PLOT.pdf', format='pdf')
+    #plt.savefig('results/BETA_PLOT.pdf', format='pdf')
 
-    return alpha_dict, beta_dict
+    return fig
 
 
 
@@ -662,6 +681,57 @@ def plot_corner(sampler, burnin, bound_dict = {'alpha' : [-6, -0.5],
 
 
 
+######## SPATIAL CONVOLUTION #############
+######## SPATIAL CONVOLUTION #############
+######## SPATIAL CONVOLUTION #############
 
+def gaussian_weight(x, y, MU, sigma):
+    #print(MU.shape)
+    return sigma * np.exp((-0.5/sigma**2) * (np.power(x - MU[:, 0], 2) + np.power(y - MU[:, 1], 2)))
+
+
+def weight_value(X, y, MU, sigma = 0.2):
+    ## X is the input coordinate of interest
+    ## y is the VALUE to be computed
+    ## MU is the distance to each value
+    ## sigma
+
+    ## first get the weight array
+    weight_array = gaussian_weight(X[0], X[1], MU, sigma)
+
+    return np.dot(y, weight_array)/(weight_array.sum())
+
+
+def spatial_2D_convolve(X_COLS, Y_COL, SIGMA = 0.25):
+
+    return [weight_value(X_ELE, y = Y_COL, MU = X_COLS) for X_ELE in X_COLS]
 
 ######## SPATIAL CONVOLUTION #############
+
+
+### BIN RESAMPLING
+
+def bin_stats(array, error, bins = None, xrange=[-4.0, 0.0], iterations = 100, normed=True):
+
+    ## resamples in input 1d array
+    bin_array = []
+
+    for i in range(iterations):
+
+        sample = resample(np.random.normal(array, np.ones(len(error)) * error))
+
+        if bin != None:
+            bin_count, edges = np.histogram(sample, bins=bins, range=range, density=True)
+            bin_array.append(bin_count)
+
+    # average
+    MEAN = np.median(np.array(bin_array), axis=0)
+
+    #calculate variance
+    VAR = np.var(np.array(bin_array), axis=0)
+
+    if normed:
+        return {"MEAN" : MEAN/sum(MEAN), 'STD' : np.sqrt(VAR + MEAN)/sum(MEAN)}
+
+    print("Not")
+    return {"MEAN" : MEAN, 'STD' : np.sqrt(VAR)}
